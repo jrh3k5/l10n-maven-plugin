@@ -301,17 +301,21 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
             sink.text("Translated Messages Statistics");
             sink.sectionTitle2_();
 
-            sink.paragraph();
             if (translatedProperties.isEmpty()) {
+                sink.paragraph();
                 sink.text("No translations of the configured authoritative messages file were found.");
+                sink.paragraph_();
             } else {
+                sink.paragraph();
                 sink.text("The following describes statistics and information about each of the discovered translations of the authoritative messages properties.");
-                sink.lineBreak();
+                sink.paragraph_();
+                sink.paragraph();
                 sink.text("'Extra translation keys' are keys that are discovered in the translated messages properties, but do not exist in the authoritative message properties.");
-                sink.lineBreak();
+                sink.paragraph_();
+                sink.paragraph();
                 sink.text("'Missing translation keys' are keys that are found in the authoritative messages properties, but are not found in the translation.");
+                sink.paragraph_();
             }
-            sink.paragraph_();
 
             for (TranslatedMessagesProperties translatedProperty : translatedProperties) {
                 sink.sectionTitle3();
@@ -328,6 +332,10 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
                 super.tableRow(new String[] { "Translation Key Count", Integer.toString(translatedProperty.getTranslationKeys().size()) });
                 super.tableRow(new String[] { "Missing Translation Keys", Integer.toString(translatedProperty.getMissingTranslationKeys().size()) });
                 super.tableRow(new String[] { "Extra Translation Keys", Integer.toString(translatedProperty.getExtraTranslationKeys().size()) });
+
+                final int comparativeCount = translatedProperty.getTranslationKeys().size() - translatedProperty.getExtraTranslationKeys().size();
+                final double percentComplete = (((double) comparativeCount) / authoritativeProperties.getTranslationKeys().size()) * 100;
+                super.tableRow(new String[] { "Translation Completion Percentage", String.format("%.2f", percentComplete) + "%" });
                 sink.table_();
             }
         }

@@ -52,6 +52,7 @@ In addition, for each translation of the authoritative source, the following inf
 
 * Number of translation keys found in the authoritative source and not this translation
 * Number of translation keys found in this translation and not found in the authoritative source
+* The percentage of completion of the translation as compared to the authoritative source
 
 ### Configuration
 
