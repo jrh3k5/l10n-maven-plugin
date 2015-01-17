@@ -234,6 +234,25 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
             sink.text("This report describes translation keys listed in your messages properties file that are in an invalid state.");
             sink.paragraph_();
 
+            sink.sectionTitle2();
+            sink.text("Duplicate Translation Keys");
+            sink.sectionTitle2_();
+            
+            sink.paragraph();
+            if(authoritativeProperties.getDuplicateTranslationKeys().isEmpty()) {
+                sink.text("No duplicate translation keys were found.");
+            } else {
+                sink.text("The following duplicate translation keys were found in your messages properties file.");
+
+                sink.table();
+                super.tableHeader(new String[] { "Translation Key" });
+                for (String duplicate : authoritativeProperties.getDuplicateTranslationKeys()) {
+                    super.tableRow(new String[] { duplicate });
+                }
+                sink.table_();
+            }
+            sink.paragraph_();
+
             // Render missing translation classes
             sink.sectionTitle2();
             sink.text("Missing Translation Classes");
@@ -337,6 +356,25 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
                 final double percentComplete = (((double) comparativeCount) / authoritativeProperties.getTranslationKeys().size()) * 100;
                 super.tableRow(new String[] { "Translation Completion Percentage", String.format("%.2f", percentComplete) + "%" });
                 sink.table_();
+
+                sink.sectionTitle4();
+                sink.text("Duplicate Translation Keys");
+                sink.sectionTitle4_();
+
+                sink.paragraph();
+                if (translatedProperty.getDuplicateTranslationKeys().isEmpty()) {
+                    sink.text("No duplicate translation keys were found.");
+                } else {
+                    sink.text("The following duplicate translation keys were found in this messages properties file.");
+
+                    sink.table();
+                    super.tableHeader(new String[] { "Translation Key" });
+                    for (String duplicate : translatedProperty.getDuplicateTranslationKeys()) {
+                        super.tableRow(new String[] { duplicate });
+                    }
+                    sink.table_();
+                }
+                sink.paragraph_();
             }
         }
     }

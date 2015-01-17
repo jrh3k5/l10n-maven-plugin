@@ -50,9 +50,12 @@ public class TranslatedMessagesProperties extends AbstractMessagesProperties imp
      *            A {@link Set} of keys that are found in the authoritative source, but not in this properties file.
      * @param extraTranslationKeys
      *            A {@link Set} of keys that are found in this properties file, but not the authoritative source.
+     * @param duplicateTranslationKeys
+     *            The duplicate translation keys contained in this file.
      */
-    private TranslatedMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys, Set<String> missingTranslationKeys, Set<String> extraTranslationKeys) {
-        super(file, supportedLocale, translationKeys);
+    private TranslatedMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys, Set<String> missingTranslationKeys, Set<String> extraTranslationKeys,
+            Set<String> duplicateTranslationKeys) {
+        super(file, supportedLocale, translationKeys, duplicateTranslationKeys);
         this.missingTranslationKeys = Collections.unmodifiableSet(missingTranslationKeys);
         this.extraTranslationKeys = Collections.unmodifiableSet(extraTranslationKeys);
     }
@@ -106,7 +109,8 @@ public class TranslatedMessagesProperties extends AbstractMessagesProperties imp
                         extraTranslationKeys.add(translationKey);
                     }
                 }
-                translated.add(new TranslatedMessagesProperties(messagesFile, determineSupportedLocale(messagesFile), translationKeys, missingTranslationKeys, extraTranslationKeys));
+                translated.add(new TranslatedMessagesProperties(messagesFile, determineSupportedLocale(messagesFile), translationKeys, missingTranslationKeys, extraTranslationKeys,
+                        getDuplicateTranslationKeys(messagesFile)));
             }
             return Collections.unmodifiableCollection(translated);
         }

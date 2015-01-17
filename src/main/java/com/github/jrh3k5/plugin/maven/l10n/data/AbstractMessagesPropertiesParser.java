@@ -17,13 +17,18 @@
  */
 package com.github.jrh3k5.plugin.maven.l10n.data;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
+
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Abstract definition of a class used to parse a messages properties file.
@@ -54,6 +59,42 @@ public abstract class AbstractMessagesPropertiesParser {
             final String language = filename.substring(underscorePos + 1, secondaryUnderscorePos);
             final String country = filename.substring(secondaryUnderscorePos + 1, periodPos);
             return new Locale(language, country);
+        }
+    }
+
+    /**
+     * Parse and search a translation file for duplicate translation keys.
+     * 
+     * @param messagesFile
+     *            A {@link File} representing the file to be searched for duplicate translation keys.
+     * @return A {@link Set} of {@link String} objects representing translation keys that appear more than once in the given file.
+     * @throws IOException
+     *             If any errors occur during the parsing.
+     */
+    protected Set<String> getDuplicateTranslationKeys(File messagesFile) throws IOException {
+        try (final InputStream fileIn = new FileInputStream(messagesFile); final InputStreamReader streamReader = new InputStreamReader(fileIn); final BufferedReader bufferedReader = new BufferedReader(streamReader)) {
+            String currentLine = null;
+            final Set<String> duplicateKeys = new HashSet<>();
+            final Set<String> seenKeys = new HashSet<>();
+            while ((currentLine = bufferedReader.readLine()) != null) {
+                // Skip blank lines and comments
+                if (StringUtils.isBlank(currentLine) || currentLine.trim().startsWith("#")) {
+                    continue;
+                }
+
+                final int equalsPos = currentLine.indexOf('=');
+                // Don't let invalid properties stop parsing
+                if (equalsPos < 0) {
+                    continue;
+                }
+                final String key = currentLine.substring(0, equalsPos);
+                if (seenKeys.contains(key)) {
+                    duplicateKeys.add(key);
+                } else {
+                    seenKeys.add(key);
+                }
+            }
+            return duplicateKeys;
         }
     }
 

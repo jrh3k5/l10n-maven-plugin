@@ -29,6 +29,14 @@ import java.util.Set;
 
 public interface MessagesProperties {
     /**
+     * Get any translation keys that appear more than once in the file.
+     * 
+     * @return A {@link Set} of any translation keys that appear more than once in the properties file.
+     * @since 1.1
+     */
+    Set<String> getDuplicateTranslationKeys();
+
+    /**
      * Get the file represented by this properties object.
      * 
      * @return A {@link File} object representing the file that is represented by this properties object.

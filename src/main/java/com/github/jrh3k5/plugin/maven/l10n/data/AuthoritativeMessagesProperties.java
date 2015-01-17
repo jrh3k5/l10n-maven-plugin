@@ -115,9 +115,11 @@ public class AuthoritativeMessagesProperties extends AbstractMessagesProperties 
      *            The {@link Locale} supported by these properties; can be {@code null}.
      * @param translationKeys
      *            The translation keys contained in this properties file.
+     * @param duplicateTranslationKeys
+     *            The duplicate translation keys contained in this file.
      */
-    private AuthoritativeMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys) {
-        super(file, supportedLocale, translationKeys);
+    private AuthoritativeMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys, Set<String> duplicateTranslationKeys) {
+        super(file, supportedLocale, translationKeys, duplicateTranslationKeys);
         this.translationClasses = Collections.unmodifiableCollection(parseTranslationClasses(translationKeys));
     }
 
@@ -146,7 +148,7 @@ public class AuthoritativeMessagesProperties extends AbstractMessagesProperties 
          *             If any errors occur during the test run.
          */
         public AuthoritativeMessagesProperties parse(File file) throws IOException {
-            return new AuthoritativeMessagesProperties(file, determineSupportedLocale(file), getTranslationKeys(file));
+            return new AuthoritativeMessagesProperties(file, determineSupportedLocale(file), getTranslationKeys(file), getDuplicateTranslationKeys(file));
         }
     }
 }

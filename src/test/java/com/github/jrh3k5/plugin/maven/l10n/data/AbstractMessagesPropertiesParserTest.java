@@ -22,6 +22,7 @@ import static org.fest.assertions.Assertions.assertThat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.UUID;
@@ -29,13 +30,15 @@ import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 
+import com.github.jrh3k5.plugin.maven.l10n.data.internal.AbstractUnitTest;
+
 /**
  * Unit tests for {@link AbstractMessagesPropertiesParser}.
  * 
  * @author Joshua Hyde
  */
 
-public class AbstractMessagesPropertiesParserTest {
+public class AbstractMessagesPropertiesParserTest extends AbstractUnitTest {
     private final AbstractMessagesPropertiesParser parser = new ConcreteParser();
 
     /**
@@ -50,6 +53,45 @@ public class AbstractMessagesPropertiesParserTest {
         final Locale supportedLocale = parser.determineSupportedLocale(messagesFile);
         assertThat(supportedLocale.getLanguage()).isEqualTo("es");
         assertThat(supportedLocale.getCountry()).isEmpty();
+    }
+
+    /**
+     * Test the parsing of a properties file and detection of duplicate translation keys.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testGetDuplicateTranslationKeys() throws Exception {
+        final File testFile = getTestFile("messages.properties");
+        FileUtils.writeLines(testFile, Arrays.asList("dup=foo", "not.dup=bar", "dup=fizzbuzz"));
+        assertThat(parser.getDuplicateTranslationKeys(testFile)).hasSize(1).contains("dup");
+    }
+
+    /**
+     * The search for duplicate translation keys should skip comments.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testGetDuplicateTranslationKeysWithComment() throws Exception {
+        final File testFile = getTestFile("messages.properties");
+        FileUtils.writeLines(testFile, Arrays.asList("comment.dup=foo", "comment.not.dup=bar", "# This is a comment", "comment.dup=fizzbuzz"));
+        assertThat(parser.getDuplicateTranslationKeys(testFile)).hasSize(1).contains("comment.dup");
+    }
+
+    /**
+     * The parsing of duplicate translation keys should tolerate empty lines in the file.
+     * 
+     * @throws Exception
+     *             If any errors occur during the test run.
+     */
+    @Test
+    public void testGetDuplicateTranslationKeysWithEmptyLine() throws Exception {
+        final File testFile = getTestFile("messages.properties");
+        FileUtils.writeLines(testFile, Arrays.asList("emptyline.dup=foo", "emptyline.not.dup=bar", " ", "emptyline.dup=fizzbuzz"));
+        assertThat(parser.getDuplicateTranslationKeys(testFile)).hasSize(1).contains("emptyline.dup");
     }
 
     /**
@@ -85,8 +127,7 @@ public class AbstractMessagesPropertiesParserTest {
      */
     @Test
     public void testGetTranslationKeys() throws Exception {
-        final File messagesFile = new File(String.format("target/test-resources/%s/testGetTranslationKeys/messages.properties", getClass().getCanonicalName()));
-        FileUtils.forceMkdir(messagesFile.getParentFile());
+        final File messagesFile = getTestFile("messages.properties");
 
         final String messageKey = UUID.randomUUID().toString();
         final Properties sourceProperties = new Properties();

@@ -30,6 +30,7 @@ import java.util.Set;
 
 public abstract class AbstractMessagesProperties implements MessagesProperties {
     private final Set<String> translationKeys;
+    private final Set<String> duplicateTranslationKeys;
     private final Locale supportedLocale;
     private final File file;
 
@@ -42,11 +43,19 @@ public abstract class AbstractMessagesProperties implements MessagesProperties {
      *            The {@link Locale} supported by this messages properties; {@code null} indicates no supported language.
      * @param translationKeys
      *            A {@link Set} containing the translation keys within the messages properties.
+     * @param duplicateTranslationKeys
+     *            A {@link Set} containing the duplicate translation keys within the messages properties.
      */
-    public AbstractMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys) {
+    public AbstractMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys, Set<String> duplicateTranslationKeys) {
         this.file = file;
         this.supportedLocale = supportedLocale;
         this.translationKeys = Collections.unmodifiableSet(translationKeys);
+        this.duplicateTranslationKeys = Collections.unmodifiableSet(duplicateTranslationKeys);
+    }
+
+    @Override
+    public Set<String> getDuplicateTranslationKeys() {
+        return duplicateTranslationKeys;
     }
 
     @Override
