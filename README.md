@@ -79,6 +79,51 @@ To change it from its default location for analysis of translation keys, add the
 
 This will have it verify the state of the properties file located at `${project.basedir}/src/main/resources/messages_en.properties`.
 
+##### Failing the Build
+
+By default, this goal will not fail the build, but merely emit WARN-level messages about the issues. If you wish to have your build fail, you can add the following configuration element:
+
+```xml
+<plugin>
+    <groupId>com.github.jrh3k5</groupId>
+    <artifactId>l10n-maven-plugin</artifactId>
+    <executions>
+        <execution>
+            <id>verify-messages</id>
+            <goals>
+                <goal>verify-messages</goal>
+            </goals>
+            <configuration>
+                <failBuild>true</failBuild>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
+
+This will produce output similar to the following:
+
+```
+[INFO] --- l10n-maven-plugin:1.2:verify-messages (verify-messages-en) @ my-project ---
+[ERROR] File messages.properties contains 1 duplicate keys.
+[ERROR] File messages.properties contains 8 references to non-existent translation key classes.
+[ERROR] File messages.properties contains 8 references to non-existent translation class keys.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time: 57.843 s
+[INFO] Finished at: 2015-01-18T08:39:26-06:00
+[INFO] Final Memory: 56M/456M
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal com.github.jrh3k5:l10n-maven-plugin:1.2:verify-messages (verify-messages) on project my-project: The file messages.properties has one or more verification errors. Refer to messages above for more information. -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+```
+
 ### Translation Key Verification Report
 
 This plugin provides a "Translation Key Verification" report. This specific report assumes that you use classes with class-level fields (most commonly `enum` objects) to represent your translation keys like the following examples:

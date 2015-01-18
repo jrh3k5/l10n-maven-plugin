@@ -58,6 +58,16 @@ public class VerifyMessagesMojo extends AbstractMojo {
     @Parameter(required = true, defaultValue = "${project.basedir}/src/main/resources/messages.properties")
     private File messagesFile;
 
+    /**
+     * Configure whether or not the build should fail if there are any verification issues. Defaults to {@code false}, which means the build will <b>not</b> fail if there are any issues with the
+     * configured messages properties file.
+     */
+    @Parameter(required = true, defaultValue = "false")
+    private boolean failBuild;
+
+    /**
+     * A {@link MavenProject} representing the current project.
+     */
     @Parameter(required = true, defaultValue = "${project}", readonly = true)
     private MavenProject project;
 
@@ -77,18 +87,26 @@ public class VerifyMessagesMojo extends AbstractMojo {
             throw new MojoExecutionException(String.format("Failed to analyze translation keys for file: %s", messagesFile), e);
         }
 
-        final AbstractIssueEmitter emitter = new LogWarnIssueEmitter(getLog());
+        final AbstractIssueEmitter emitter = failBuild ? new LogErrorIssueEmitter(getLog()) : new LogWarnIssueEmitter(getLog());
 
+        boolean shouldFail = false;
         if (!properties.getDuplicateTranslationKeys().isEmpty()) {
+            shouldFail = true;
             emitter.emit(String.format("File %s contains %d duplicate keys.", messagesFile.getName(), properties.getDuplicateTranslationKeys().size()));
         }
 
         if (!analysisResults.getMissingTranslationKeyClasses().isEmpty()) {
+            shouldFail = true;
             emitter.emit(String.format("File %s contains %d references to non-existent translation key classes.", messagesFile.getName(), analysisResults.getMissingTranslationKeyClasses().size()));
         }
 
         if (!analysisResults.getMissingTranslationKeys().isEmpty()) {
+            shouldFail = true;
             emitter.emit(String.format("File %s contains %d references to non-existent translation class keys.", messagesFile.getName(), analysisResults.getMissingTranslationKeys().size()));
+        }
+
+        if (failBuild && shouldFail) {
+            throw new MojoFailureException(String.format("The file %s has one or more verification errors. Refer to messages above for more information.", messagesFile.getName()));
         }
     }
 
@@ -106,6 +124,31 @@ public class VerifyMessagesMojo extends AbstractMojo {
          *            The message to be emitted.
          */
         public abstract void emit(String message);
+    }
+
+    /**
+     * An {@link AbstractIssueEmitter} that emits messages a log ERROR level.
+     * 
+     * @author Joshua Hyde
+     * @since 1.2
+     */
+    private static class LogErrorIssueEmitter extends AbstractIssueEmitter {
+        private final Log log;
+
+        /**
+         * Create an emitter.
+         * 
+         * @param log
+         *            The {@link Log} to back this emitter.
+         */
+        private LogErrorIssueEmitter(Log log) {
+            this.log = log;
+        }
+
+        @Override
+        public void emit(String message) {
+            log.error(message);
+        }
     }
 
     /**
