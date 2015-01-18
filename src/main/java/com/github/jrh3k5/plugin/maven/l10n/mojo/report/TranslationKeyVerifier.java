@@ -19,10 +19,6 @@ package com.github.jrh3k5.plugin.maven.l10n.mojo.report;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +26,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.doxia.sink.Sink;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -45,7 +40,8 @@ import com.github.jrh3k5.plugin.maven.l10n.data.AuthoritativeMessagesProperties;
 import com.github.jrh3k5.plugin.maven.l10n.data.MissingTranslationKey;
 import com.github.jrh3k5.plugin.maven.l10n.data.MissingTranslationKeyClass;
 import com.github.jrh3k5.plugin.maven.l10n.data.TranslatedMessagesProperties;
-import com.github.jrh3k5.plugin.maven.l10n.data.TranslationClass;
+import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils;
+import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils.ClassinessAnalysisResults;
 
 /**
  * A goal used to verify that translation keys in a configured messages properties file are all valid. This mojo assumes that you follow the practice of using class and fields for your keys; for
@@ -71,12 +67,6 @@ import com.github.jrh3k5.plugin.maven.l10n.data.TranslationClass;
 @Mojo(name = "translation-key-verifification", requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class TranslationKeyVerifier extends AbstractMavenReport {
     private static final String OUTPUT_NAME = "translation-key-verification";
-
-    /**
-     * The location of where the compiled sources of the project can be found.
-     */
-    @Parameter(required = true, defaultValue = "${project.build.outputDirectory}")
-    private File compiledSourcesDirectory;
 
     /**
      * The location of the file that is to be read and verified. This is considered the "authoritative" messages file, of which all other messages are to be considered translations.
@@ -113,7 +103,6 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
 
     @Override
     protected void executeReport(Locale locale) throws MavenReportException {
-        final ClassLoader classLoader = getClassLoader();
         AuthoritativeMessagesProperties authoritativeProperties;
         Collection<TranslatedMessagesProperties> translatedProperties;
         try {
@@ -131,53 +120,14 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
             throw new MavenReportException(String.format("Failed to parse translated messages files for pattern: %s", translatedMessagesPattern), e);
         }
 
-        final List<MissingTranslationKey> missingTranslationKeys = new ArrayList<>();
-        final List<MissingTranslationKeyClass> missingTranslationKeyClasses = new ArrayList<>();
-
-        // First, build the report for missing translation keys and classes
-        for (TranslationClass translationClass : authoritativeProperties.getTranslationClasses()) {
-            final String className = translationClass.getTranslationClassName();
-
-            Class<?> translationKeyClass = null;
-            try {
-                translationKeyClass = classLoader.loadClass(className);
-            } catch (ClassNotFoundException e) {
-                getLog().debug(String.format("The translation key class %s was not found.", className), e);
-                missingTranslationKeyClasses.add(new MissingTranslationKeyClass(className));
-                continue;
-            }
-
-            for (String keyName : translationClass.getKeyNames()) {
-                try {
-                    translationKeyClass.getDeclaredField(keyName);
-                } catch (NoSuchFieldException | SecurityException e) {
-                    getLog().debug(String.format("The translation key %s for class %s was not found.", keyName, className), e);
-                    missingTranslationKeys.add(new MissingTranslationKey(className, keyName));
-                    continue;
-                }
-            }
-        }
-
-        new ReportRenderer(this, locale, getSink(), authoritativeProperties, missingTranslationKeys, missingTranslationKeyClasses, translatedProperties).render();
-    }
-
-    /**
-     * Get a classloader that can be used to load the classes of the translation keys.
-     * 
-     * @return A {@link ClassLoader} that can be used to load the classes of the translation keys.
-     * @throws MavenReportException
-     *             If any errors occur in building the classloader.
-     */
-    private ClassLoader getClassLoader() throws MavenReportException {
-        final List<URL> classpathUrls = new ArrayList<>();
+        ClassinessAnalysisResults analysisResults;
         try {
-            for (Object dependency : getProject().getRuntimeClasspathElements()) {
-                classpathUrls.add(new File(dependency.toString()).toURI().toURL());
-            }
-        } catch (MalformedURLException | DependencyResolutionRequiredException e) {
-            throw new MavenReportException("Failed to resolve class realm.", e);
+            analysisResults = TranslationKeyAnalysisUtils.getInstance(getLog()).analyzeClassiness(getProject(), authoritativeProperties);
+        } catch (IOException e) {
+            throw new MavenReportException(String.format("Failed to verify %s", messagesFile), e);
         }
-        return new URLClassLoader(classpathUrls.toArray(new URL[classpathUrls.size()]));
+
+        new ReportRenderer(this, locale, getSink(), authoritativeProperties, analysisResults, translatedProperties).render();
     }
 
     /**
@@ -202,19 +152,22 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
          *            The {@link Locale} to be used for localization of the rendered report.
          * @param sink
          *            The {@link Sink} to be used for generation of the report.
-         * @param missingTranslationKeys
-         *            A {@link Collection} of {@link MissingTranslationKey} objects representing the missing translation keys.
-         * @param missingTranslationKeyClasses
-         *            A {@link Collection} of {@link MissingTranslationKeyClass} objects representing the missing translation classes.
+         * @param authoritativeProperties
+         *            The {@link AuthoritativeMessagesProperties} to drive the primary statistics of the report.
+         * @param analysisResults
+         *            A {@link com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils.ClassinessAnalysisResults AuthoritativeMessagesProperties} object representing analysis results for
+         *            the authoritative message properties file.
+         * @param translatedProperties
+         *            A {@link Collection} of {@link TranslatedMessagesProperties} objects representing the analysis of translations of the authoritative messages properties file.
          */
-        ReportRenderer(TranslationKeyVerifier mojo, Locale locale, Sink sink, AuthoritativeMessagesProperties authoritativeProperties, Collection<MissingTranslationKey> missingTranslationKeys,
-                Collection<MissingTranslationKeyClass> missingTranslationKeyClasses, Collection<TranslatedMessagesProperties> translatedProperties) {
+        ReportRenderer(TranslationKeyVerifier mojo, Locale locale, Sink sink, AuthoritativeMessagesProperties authoritativeProperties, ClassinessAnalysisResults analysisResults,
+                Collection<TranslatedMessagesProperties> translatedProperties) {
             super(sink);
             this.mojo = mojo;
             this.locale = locale;
             this.authoritativeProperties = authoritativeProperties;
-            this.missingTranslationKeyClasses = new TreeSet<>(missingTranslationKeyClasses);
-            this.missingTranslationKeys = new TreeSet<>(missingTranslationKeys);
+            this.missingTranslationKeyClasses = new TreeSet<>(analysisResults.getMissingTranslationKeyClasses());
+            this.missingTranslationKeys = new TreeSet<>(analysisResults.getMissingTranslationKeys());
             this.translatedProperties = new TreeSet<>(translatedProperties);
         }
 
