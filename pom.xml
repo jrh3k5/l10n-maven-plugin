@@ -12,7 +12,7 @@
     </parent>
     <groupId>com.github.jrh3k5</groupId>
     <artifactId>l10n-maven-plugin</artifactId>
-    <version>1.2</version>
+    <version>1.3-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <name>l10n Maven Plugin</name>
     <description>A plugin to provide reporting and build utilities surrounding localization.</description>
@@ -27,7 +27,7 @@
         <connection>scm:git:git@github.com:jrh3k5/l10n-maven-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jrh3k5/l10n-maven-plugin.git</developerConnection>
         <url>https://github.com/jrh3k5/l10n-maven-plugin</url>
-        <tag>l10n-maven-plugin-1.2</tag>
+        <tag>HEAD</tag>
     </scm>
     <issueManagement>
         <system>GitHub</system>
