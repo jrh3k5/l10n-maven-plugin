@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
 
 import com.github.jrh3k5.plugin.maven.l10n.data.AuthoritativeMessagesProperties;
 import com.github.jrh3k5.plugin.maven.l10n.data.MissingTranslationKey;
@@ -102,7 +101,7 @@ public class TranslationKeyAnalysisUtils {
     }
 
     /**
-     * An object representing the results of a {@link TranslationKeyAnalysisUtils#analyzeClassiness(MavenProject, AuthoritativeMessagesProperties) classiness analysis}.
+     * An object representing the results of a {@link TranslationKeyAnalysisUtils#analyzeClassiness(ClassLoader, AuthoritativeMessagesProperties) classiness analysis}.
      * 
      * @author Joshua Hyde
      * @since 1.2
