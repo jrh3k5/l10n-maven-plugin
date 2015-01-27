@@ -172,7 +172,7 @@ In addition, for each translation of the authoritative source, the following inf
 
 #### Configuration
 
-The plugin, by default, looks like the following:
+The plugin, by default, looks like the following (shown below are default values):
 
 ```xml
 <plugin>
@@ -202,6 +202,24 @@ Your project may not follow the defaults assumed by this report - for example, i
     <configuration>
         <messagesFile>${project.basedir}/src/main/webapp/WEB-INF/messages/messages_en.properties</messagesFile>
         <translatedMessagesPattern>src/main/webapp/WEB-INF/messages/messages*.properties</translatedMessagesPattern>
+    </configuration>
+</plugin>
+```
+
+##### Finding Translation Classes Without Messages
+
+The plugin can be configured to look for instances of configured class names and implementations and extensions of configured class names, compare it against the configured authoritative messages properties file, and report any translation keys that are not found in the configured properties file.
+
+This configuration, if you were using, as an example, `enum` objects implementing the `com.example.TranslationKey` interface, would look like:
+
+```xml
+<plugin>
+    <groupId>com.github.jrh3k5</groupId>
+    <artifactId>l10n-maven-plugin</artifactId>
+    <configuration>
+        <keyClasses>
+            <keyClass>com.example.TranslationKey</keyClass>
+        </keyClasses>
     </configuration>
 </plugin>
 ```

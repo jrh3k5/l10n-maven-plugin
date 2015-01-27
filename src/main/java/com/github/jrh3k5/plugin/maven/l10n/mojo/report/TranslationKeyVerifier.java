@@ -20,6 +20,7 @@ package com.github.jrh3k5.plugin.maven.l10n.mojo.report;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
@@ -40,6 +41,8 @@ import com.github.jrh3k5.plugin.maven.l10n.data.AuthoritativeMessagesProperties;
 import com.github.jrh3k5.plugin.maven.l10n.data.MissingTranslationKey;
 import com.github.jrh3k5.plugin.maven.l10n.data.MissingTranslationKeyClass;
 import com.github.jrh3k5.plugin.maven.l10n.data.TranslatedMessagesProperties;
+import com.github.jrh3k5.plugin.maven.l10n.util.ClassLoaderUtils;
+import com.github.jrh3k5.plugin.maven.l10n.util.TranslationClassUtils;
 import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils;
 import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils.ClassinessAnalysisResults;
 
@@ -86,6 +89,14 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
     @Parameter(required = true, readonly = true, defaultValue = "${descriptor}")
     private PluginDescriptor pluginDescriptor;
 
+    /**
+     * The key classes that should be read and then searched for corresponding entries in the configured message file.
+     * 
+     * @since 1.3
+     */
+    @Parameter(required = false)
+    private List<String> keyClasses = Collections.emptyList();
+
     @Override
     public String getOutputName() {
         return OUTPUT_NAME;
@@ -103,6 +114,13 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
 
     @Override
     protected void executeReport(Locale locale) throws MavenReportException {
+        ClassLoader classLoader;
+        try {
+            classLoader = ClassLoaderUtils.getClassLoader(getProject());
+        } catch (IOException e) {
+            throw new MavenReportException("Failed to load project classloader.", e);
+        }
+
         AuthoritativeMessagesProperties authoritativeProperties;
         Collection<TranslatedMessagesProperties> translatedProperties;
         try {
@@ -122,12 +140,20 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
 
         ClassinessAnalysisResults analysisResults;
         try {
-            analysisResults = TranslationKeyAnalysisUtils.getInstance(getLog()).analyzeClassiness(getProject(), authoritativeProperties);
+            analysisResults = TranslationKeyAnalysisUtils.getInstance(getLog()).analyzeClassiness(classLoader, authoritativeProperties);
         } catch (IOException e) {
             throw new MavenReportException(String.format("Failed to verify %s", messagesFile), e);
         }
 
-        new ReportRenderer(this, locale, getSink(), authoritativeProperties, analysisResults, translatedProperties).render();
+        Collection<String> translationClassKeys;
+        try {
+            translationClassKeys = TranslationClassUtils.getTranslationKeys(keyClasses, classLoader);
+        } catch (ClassNotFoundException e) {
+            throw new MavenReportException("Failed to translate key classes: " + keyClasses, e);
+        }
+        translationClassKeys.removeAll(authoritativeProperties.getTranslationKeys());
+
+        new ReportRenderer(this, locale, getSink(), authoritativeProperties, analysisResults, translatedProperties, translationClassKeys).render();
     }
 
     /**
@@ -142,6 +168,7 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
         private final SortedSet<MissingTranslationKey> missingTranslationKeys;
         private final SortedSet<MissingTranslationKeyClass> missingTranslationKeyClasses;
         private final SortedSet<TranslatedMessagesProperties> translatedProperties;
+        private final SortedSet<String> messagelessKeys;
 
         /**
          * Create a renderer.
@@ -159,9 +186,11 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
          *            the authoritative message properties file.
          * @param translatedProperties
          *            A {@link Collection} of {@link TranslatedMessagesProperties} objects representing the analysis of translations of the authoritative messages properties file.
+         * @param messagelessKeys
+         *            A {@link Collection} of {@link String} objects representing translation keys that have been discovered that no corresponding messages properties file entries.
          */
         ReportRenderer(TranslationKeyVerifier mojo, Locale locale, Sink sink, AuthoritativeMessagesProperties authoritativeProperties, ClassinessAnalysisResults analysisResults,
-                Collection<TranslatedMessagesProperties> translatedProperties) {
+                Collection<TranslatedMessagesProperties> translatedProperties, Collection<String> messagelessKeys) {
             super(sink);
             this.mojo = mojo;
             this.locale = locale;
@@ -169,6 +198,7 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
             this.missingTranslationKeyClasses = new TreeSet<>(analysisResults.getMissingTranslationKeyClasses());
             this.missingTranslationKeys = new TreeSet<>(analysisResults.getMissingTranslationKeys());
             this.translatedProperties = new TreeSet<>(translatedProperties);
+            this.messagelessKeys = new TreeSet<>(messagelessKeys);
         }
 
         @Override
@@ -188,11 +218,30 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
             sink.paragraph_();
 
             sink.sectionTitle2();
+            sink.text("Messageless Keys");
+            sink.sectionTitle2_();
+
+            sink.paragraph();
+            if (messagelessKeys.isEmpty()) {
+                sink.text("There are no translation key classes defined or there are none missing properties file entries.");
+            } else {
+                sink.text("The following are fields of translation classes that were not found to have any corresponding entries in the authoritative messages properties file.");
+
+                sink.table();
+                super.tableHeader(new String[] { "Translation Key" });
+                for (String messagelessKey : messagelessKeys) {
+                    super.tableRow(new String[] { messagelessKey });
+                }
+                sink.table_();
+            }
+            sink.paragraph_();
+
+            sink.sectionTitle2();
             sink.text("Duplicate Translation Keys");
             sink.sectionTitle2_();
-            
+
             sink.paragraph();
-            if(authoritativeProperties.getDuplicateTranslationKeys().isEmpty()) {
+            if (authoritativeProperties.getDuplicateTranslationKeys().isEmpty()) {
                 sink.text("No duplicate translation keys were found.");
             } else {
                 sink.text("The following duplicate translation keys were found in your messages properties file.");
@@ -260,7 +309,7 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
 
             sink.table();
             super.tableRow(new String[] { "Filename", authoritativeProperties.getFile().getName() });
-            if(authoritativeProperties.getSupportedLocale() != null) {
+            if (authoritativeProperties.getSupportedLocale() != null) {
                 super.tableRow(new String[] { "Supported Language", authoritativeProperties.getSupportedLocale().getDisplayLanguage() });
                 if (StringUtils.isNotEmpty(authoritativeProperties.getSupportedLocale().getCountry())) {
                     super.tableRow(new String[] { "Supported Country", authoritativeProperties.getSupportedLocale().getDisplayCountry() });

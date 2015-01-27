@@ -31,6 +31,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 
 import com.github.jrh3k5.plugin.maven.l10n.data.AuthoritativeMessagesProperties;
+import com.github.jrh3k5.plugin.maven.l10n.util.ClassLoaderUtils;
 import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils;
 import com.github.jrh3k5.plugin.maven.l10n.util.TranslationKeyAnalysisUtils.ClassinessAnalysisResults;
 
@@ -82,7 +83,7 @@ public class VerifyMessagesMojo extends AbstractMojo {
 
         ClassinessAnalysisResults analysisResults;
         try {
-            analysisResults = TranslationKeyAnalysisUtils.getInstance(getLog()).analyzeClassiness(project, properties);
+            analysisResults = TranslationKeyAnalysisUtils.getInstance(getLog()).analyzeClassiness(ClassLoaderUtils.getClassLoader(project), properties);
         } catch (IOException e) {
             throw new MojoExecutionException(String.format("Failed to analyze translation keys for file: %s", messagesFile), e);
         }
