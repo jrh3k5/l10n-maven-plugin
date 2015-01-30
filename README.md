@@ -15,7 +15,7 @@ The following describes usage details of this plugin.
 
 ### Messages Verification Build Plugin
 
-Starting with version 2.1, you can now have the plugin bind to the `verify` lifecycle phase and verify the following about a configured messages properties file:
+Starting with version 1.2, you can now have the plugin bind to the `verify` lifecycle phase and verify the following about a configured messages properties file:
 
 * It has no duplicate translation keys
 * Its translation keys reference existent classes
