@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * A representation of a properties file that was translated from a designated authoritative messages properties file.
@@ -34,7 +36,7 @@ import java.util.Set;
  */
 
 public class TranslatedMessagesProperties extends AbstractMessagesProperties implements Comparable<TranslatedMessagesProperties> {
-    private final Set<String> missingTranslationKeys;
+    private final SortedSet<String> missingTranslationKeys;
     private final Set<String> extraTranslationKeys;
 
     /**
@@ -56,7 +58,7 @@ public class TranslatedMessagesProperties extends AbstractMessagesProperties imp
     private TranslatedMessagesProperties(File file, Locale supportedLocale, Set<String> translationKeys, Set<String> missingTranslationKeys, Set<String> extraTranslationKeys,
             Set<String> duplicateTranslationKeys) {
         super(file, supportedLocale, translationKeys, duplicateTranslationKeys);
-        this.missingTranslationKeys = Collections.unmodifiableSet(missingTranslationKeys);
+        this.missingTranslationKeys = Collections.unmodifiableSortedSet(new TreeSet<>(missingTranslationKeys));
         this.extraTranslationKeys = Collections.unmodifiableSet(extraTranslationKeys);
     }
 
@@ -65,10 +67,20 @@ public class TranslatedMessagesProperties extends AbstractMessagesProperties imp
         return getFile().getName().compareTo(o.getFile().getName());
     }
 
-    public Set<String> getMissingTranslationKeys() {
+    /**
+     * Get keys that are present in the authoritative messages properties file, but missing in this one.
+     * 
+     * @return A {@link SortedSet} composed of the keys missing from this properties file.
+     */
+    public SortedSet<String> getMissingTranslationKeys() {
         return missingTranslationKeys;
     }
 
+    /**
+     * Get keys that are present in this properties file, but not in the authoriative messages properties file.
+     * 
+     * @return A {@link Set} composed of the keys present in this file and missing in the authoritative file.
+     */
     public Set<String> getExtraTranslationKeys() {
         return extraTranslationKeys;
     }

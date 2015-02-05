@@ -377,6 +377,22 @@ public class TranslationKeyVerifier extends AbstractMavenReport {
                     sink.table_();
                 }
                 sink.paragraph_();
+
+                if (!translatedProperty.getMissingTranslationKeys().isEmpty()) {
+                    sink.sectionTitle4();
+                    sink.text("Missing Translation Keys");
+                    sink.sectionTitle4_();
+
+                    sink.table();
+                    super.tableHeader(new String[] { "Translation Key" });
+                    for (String missingTranslationKey : translatedProperty.getMissingTranslationKeys()) {
+                        super.tableRow(new String[] { missingTranslationKey });
+                    }
+                    if (translatedProperty.getMissingTranslationKeys().size() > 10) {
+                        super.tableRow(new String[] { String.format("And %d more...", translatedProperty.getMissingTranslationKeys().size() - 10) });
+                    }
+                    sink.table_();
+                }
             }
         }
     }
